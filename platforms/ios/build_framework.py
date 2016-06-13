@@ -25,18 +25,15 @@ The script should handle minor OpenCV updates efficiently
 However, opencv2.framework directory is erased and recreated on each run.
 """
 
+from __future__ import print_function
 import glob, re, os, os.path, shutil, string, sys, exceptions, subprocess, argparse
+from subprocess import check_call, check_output, CalledProcessError
 
-def execute(cmd):
-    try:
-        print >>sys.stderr, "Executing:", cmd
-        retcode = subprocess.call(cmd, shell=True)
-        if retcode < 0:
-            raise Exception("Child was terminated by signal:", -retcode)
-        elif retcode > 0:
-            raise Exception("Child returned:", retcode)
-    except OSError as e:
-        raise Exception("Execution failed:", e)
+def execute(cmd, cwd = None):
+    print("Executing: %s in %s" % (cmd, cwd), file=sys.stderr)
+    retcode = check_call(cmd, cwd = cwd)
+    if retcode != 0:
+        raise Exception("Child returned:", retcode)
 
 def build_opencv(srcroot, buildroot, target, arch, extra_cmake_flags):
     "builds OpenCV for device or simulator"
@@ -68,8 +65,21 @@ def build_opencv(srcroot, buildroot, target, arch, extra_cmake_flags):
     execute("xcodebuild IPHONEOS_DEPLOYMENT_TARGET=6.0 ARCHS=%s -sdk %s -configuration Release -target install install" % (arch, target.lower()))
     os.chdir(currdir)
 
+def mergeLibs(dstroot):
+    # find the list of targets (basically, ["iPhoneOS", "iPhoneSimulator"])
+    targetlist = glob.glob(os.path.join(dstroot, "build", "*"))
+
+    for builddir in targetlist:
+        res = os.path.join(builddir, "lib", "Release", "libopencv_merged")
+        libs = glob.glob(os.path.join(builddir, "lib", "Release", "*.a"))
+        print("Merging libraries:\n\t%s" % "\n\t".join(libs), file=sys.stderr)
+        execute(["libtool", "-static", "-o", res] + libs)
+
 def put_framework_together(srcroot, dstroot):
     "constructs the framework directory after all the targets are built"
+
+    name = "opencv2"
+    libname = "libopencv_merged"
 
     # find the list of targets (basically, ["iPhoneOS", "iPhoneSimulator"])
     targetlist = glob.glob(os.path.join(dstroot, "build", "*"))
@@ -91,6 +101,14 @@ def put_framework_together(srcroot, dstroot):
     # copy headers
     shutil.copytree(tdir0 + "/install/include/opencv2", dstdir + "/Headers")
 
+    # make universal static lib
+    libs = [os.path.join("../build/" + d, "lib", "Release", libname) for d in targetlist]
+    lipocmd = ["lipo", "-create"]
+    lipocmd.extend(libs)
+    lipocmd.extend(["-o", os.path.join(dstdir, name)])
+    print("Creating universal library from:\n\t%s" % "\n\t".join(libs), file=sys.stderr)
+    execute(lipocmd)
+
     # copy Info.plist
     shutil.copyfile(tdir0 + "/ios/Info.plist", dstdir + "/Resources/Info.plist")
 
@@ -108,6 +126,7 @@ def build_framework(srcroot, dstroot, supportedarchs, excluded_modules):
     for t in supportedarchs:
         build_opencv(srcroot, os.path.join(dstroot, "build"), t[1], t[0], extra_cmake_flags)
 
+    mergeLibs(dstroot)
     put_framework_together(srcroot, dstroot)
 
 
@@ -137,5 +156,8 @@ if __name__ == "__main__":
     try:
         build_framework(os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "../..")), os.path.abspath(args.out), supportedarchs, excluded_modules)
     except Exception as e:
-        print >>sys.stderr, e
+        print("="*60, file=sys.stderr)
+        print("ERROR: %s" % e, file=sys.stderr)
+        print("="*60, file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
         sys.exit(1)
