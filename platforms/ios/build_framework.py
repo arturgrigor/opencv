@@ -43,7 +43,8 @@ def getXCodeMajor():
     return 0
 
 class Builder:
-    def __init__(self, opencv, contrib, targets):
+    def __init__(self, opencv, contrib, targets, excluded_modules):
+        self.extra_cmake_flags = list(map((lambda e: "-DBUILD_opencv_"+e+"=OFF"), excluded_modules)) if excluded_modules is not None else []
         self.opencv = os.path.abspath(opencv)
         self.contrib = None
         if contrib:
@@ -78,7 +79,8 @@ class Builder:
             if xcode_ver >= 7 and t[1] == 'iPhoneOS':
                 cmake_flags.append("-DCMAKE_C_FLAGS=-fembed-bitcode")
                 cmake_flags.append("-DCMAKE_CXX_FLAGS=-fembed-bitcode")
-            self.buildOne(t[0], t[1], mainBD, cmake_flags)
+            all_cmake_flags = cmake_flags + self.extra_cmake_flags
+            self.buildOne(t[0], t[1], mainBD, all_cmake_flags)
             self.mergeLibs(mainBD)
         self.makeFramework(outdir, dirs)
 
@@ -195,16 +197,21 @@ if __name__ == "__main__":
         ("x86_64", "iPhoneSimulator"),
     ]
     archs = list(map((lambda e: e[0]), allarchs))
+    archs = reduce((lambda a, b: a + "," + b), archs)
     folder = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "../.."))
     parser = argparse.ArgumentParser(description='The script builds OpenCV.framework for iOS.')
     parser.add_argument('out', metavar='OUTDIR', help='folder to put built framework')
     parser.add_argument('--archs', metavar='ARCHS', default=archs, help='the supported architectures (default is all "armv7,armv7s,arm64,i386,x86_64")')
     parser.add_argument('--opencv', metavar='DIR', default=folder, help='folder with opencv repository (default is "../.." relative to script location)')
     parser.add_argument('--contrib', metavar='DIR', default=None, help='folder with opencv_contrib repository (default is "None" - build only main framework)')
+    parser.add_argument('--excluded_modules', default=None, help='the excluded modules (default is "None")')
     args = parser.parse_args()
-    inputarchs = [item for item in args.archs.split(',')]
+    inputarchs = None if args.archs is None else [item for item in args.archs.split(',')]
     supportedarchs = [e for e in allarchs if e[0] in inputarchs]
+    excluded_modules = None if args.excluded_modules is None else [item for item in args.excluded_modules.split(',')]
     print("Building only for", inputarchs, "...")
+    if excluded_modules is not None:
+        print("Excluding the modules", excluded_modules)
 
-    b = Builder(args.opencv, args.contrib, supportedarchs)
+    b = Builder(args.opencv, args.contrib, supportedarchs, excluded_modules)
     b.build(args.out)
