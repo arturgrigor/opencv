@@ -29,6 +29,17 @@ from __future__ import print_function
 import glob, re, os, os.path, shutil, string, sys, exceptions, subprocess, argparse
 from subprocess import check_call, check_output, CalledProcessError
 
+def run(cmd):
+    try:
+        print("Executing: " + cmd, file=sys.stderr)
+        retcode = subprocess.call(cmd, shell=True)
+        if retcode < 0:
+            raise Exception("Child was terminated by signal:", -retcode)
+        elif retcode > 0:
+            raise Exception("Child returned:", retcode)
+    except OSError as e:
+        raise Exception("Execution failed:", e)
+
 def execute(cmd, cwd = None):
     print("Executing: %s in %s" % (cmd, cwd), file=sys.stderr)
     retcode = check_call(cmd, cwd = cwd)
@@ -57,12 +68,12 @@ def build_opencv(srcroot, buildroot, target, arch, extra_cmake_flags):
 
     # if cmake cache exists, just rerun cmake to update OpenCV.xcodeproj if necessary
     if os.path.isfile(os.path.join(builddir, "CMakeCache.txt")):
-        execute("cmake %s ." % (cmakeargs,))
+        run("cmake %s ." % (cmakeargs,))
     else:
-        execute("cmake %s %s" % (cmakeargs, srcroot))
+        run("cmake %s %s" % (cmakeargs, srcroot))
 
-    execute("xcodebuild IPHONEOS_DEPLOYMENT_TARGET=6.0 -parallelizeTargets ARCHS=%s -jobs 8 -sdk %s -configuration Release -target ALL_BUILD" % (arch, target.lower()))
-    execute("xcodebuild IPHONEOS_DEPLOYMENT_TARGET=6.0 ARCHS=%s -sdk %s -configuration Release -target install install" % (arch, target.lower()))
+    run("xcodebuild IPHONEOS_DEPLOYMENT_TARGET=6.0 -parallelizeTargets ARCHS=%s -jobs 8 -sdk %s -configuration Release -target ALL_BUILD" % (arch, target.lower()))
+    run("xcodebuild IPHONEOS_DEPLOYMENT_TARGET=6.0 ARCHS=%s -sdk %s -configuration Release -target install install" % (arch, target.lower()))
     os.chdir(currdir)
 
 def mergeLibs(dstroot):
