@@ -187,19 +187,24 @@ class Builder:
             os.symlink(s, d)
 
 if __name__ == "__main__":
+    allarchs = [
+        ("armv7", "iPhoneOS"),
+        ("armv7s", "iPhoneOS"),
+        ("arm64", "iPhoneOS"),
+        ("i386", "iPhoneSimulator"),
+        ("x86_64", "iPhoneSimulator"),
+    ]
+    archs = list(map((lambda e: e[0]), allarchs))
     folder = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "../.."))
     parser = argparse.ArgumentParser(description='The script builds OpenCV.framework for iOS.')
     parser.add_argument('out', metavar='OUTDIR', help='folder to put built framework')
+    parser.add_argument('--archs', metavar='ARCHS', default=archs, help='the supported architectures (default is all "armv7,armv7s,arm64,i386,x86_64")')
     parser.add_argument('--opencv', metavar='DIR', default=folder, help='folder with opencv repository (default is "../.." relative to script location)')
     parser.add_argument('--contrib', metavar='DIR', default=None, help='folder with opencv_contrib repository (default is "None" - build only main framework)')
     args = parser.parse_args()
+    inputarchs = [item for item in args.archs.split(',')]
+    supportedarchs = [e for e in allarchs if e[0] in inputarchs]
+    print("Building only for", inputarchs, "...")
 
-    b = Builder(args.opencv, args.contrib,
-        [
-            ("armv7", "iPhoneOS"),
-            ("armv7s", "iPhoneOS"),
-            ("arm64", "iPhoneOS"),
-            ("i386", "iPhoneSimulator"),
-            ("x86_64", "iPhoneSimulator"),
-        ])
+    b = Builder(args.opencv, args.contrib, supportedarchs)
     b.build(args.out)
