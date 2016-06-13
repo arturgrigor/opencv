@@ -83,8 +83,9 @@ def mergeLibs(dstroot):
     for builddir in targetlist:
         res = os.path.join(builddir, "lib", "Release", "libopencv_merged")
         libs = glob.glob(os.path.join(builddir, "lib", "Release", "*.a"))
-        print("Merging libraries:\n\t%s" % "\n\t".join(libs), file=sys.stderr)
-        execute(["libtool", "-static", "-o", res] + libs)
+        libs3 = glob.glob(os.path.join(builddir, "3rdparty", "lib", "Release", "*.a"))
+        print("Merging libraries:\n\t%s" % "\n\t".join(libs + libs3), file=sys.stderr)
+        execute(["libtool", "-static", "-o", res] + libs + libs3)
 
 def put_framework_together(srcroot, dstroot):
     "constructs the framework directory after all the targets are built"
