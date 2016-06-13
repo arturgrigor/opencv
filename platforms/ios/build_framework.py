@@ -25,7 +25,7 @@ The script should handle minor OpenCV updates efficiently
 However, opencv2.framework directory is erased and recreated on each run.
 """
 
-import glob, re, os, os.path, shutil, string, sys, exceptions, subprocess
+import glob, re, os, os.path, shutil, string, sys, exceptions, subprocess, argparse
 
 def execute(cmd):
     try:
@@ -38,7 +38,7 @@ def execute(cmd):
     except OSError as e:
         raise Exception("Execution failed:", e)
 
-def build_opencv(srcroot, buildroot, target, arch):
+def build_opencv(srcroot, buildroot, target, arch, extra_cmake_flags):
     "builds OpenCV for device or simulator"
 
     builddir = os.path.join(buildroot, target + '-' + arch)
@@ -50,23 +50,19 @@ def build_opencv(srcroot, buildroot, target, arch):
     cmakeargs = ("-GXcode " +
                 "-DCMAKE_BUILD_TYPE=Release " +
                 "-DCMAKE_TOOLCHAIN_FILE=%s/platforms/ios/cmake/Toolchains/Toolchain-%s_Xcode.cmake " +
-                "-DBUILD_opencv_world=ON " +
                 "-DCMAKE_C_FLAGS=\"-Wno-implicit-function-declaration\" " +
                 "-DCMAKE_INSTALL_PREFIX=install") % (srcroot, target)
 
     if arch.startswith("armv"):
         cmakeargs += " -DENABLE_NEON=ON"
 
+    cmakeargs += reduce((lambda a, b: " " + a + " " + b), extra_cmake_flags)
+
     # if cmake cache exists, just rerun cmake to update OpenCV.xcodeproj if necessary
     if os.path.isfile(os.path.join(builddir, "CMakeCache.txt")):
         execute("cmake %s ." % (cmakeargs,))
     else:
         execute("cmake %s %s" % (cmakeargs, srcroot))
-
-    for wlib in [builddir + "/modules/world/UninstalledProducts/libopencv_world.a",
-                 builddir + "/lib/Release/libopencv_world.a"]:
-        if os.path.isfile(wlib):
-            os.remove(wlib)
 
     execute("xcodebuild IPHONEOS_DEPLOYMENT_TARGET=6.0 -parallelizeTargets ARCHS=%s -jobs 8 -sdk %s -configuration Release -target ALL_BUILD" % (arch, target.lower()))
     execute("xcodebuild IPHONEOS_DEPLOYMENT_TARGET=6.0 ARCHS=%s -sdk %s -configuration Release -target install install" % (arch, target.lower()))
@@ -95,10 +91,6 @@ def put_framework_together(srcroot, dstroot):
     # copy headers
     shutil.copytree(tdir0 + "/install/include/opencv2", dstdir + "/Headers")
 
-    # make universal static lib
-    wlist = " ".join(["../build/" + t + "/lib/Release/libopencv_world.a" for t in targetlist])
-    execute("lipo -create " + wlist + " -o " + dstdir + "/opencv2")
-
     # copy Info.plist
     shutil.copyfile(tdir0 + "/ios/Info.plist", dstdir + "/Resources/Info.plist")
 
@@ -109,27 +101,41 @@ def put_framework_together(srcroot, dstroot):
     os.symlink("Versions/Current/opencv2", "opencv2")
 
 
-def build_framework(srcroot, dstroot):
+def build_framework(srcroot, dstroot, supportedarchs, excluded_modules):
     "main function to do all the work"
 
-    targets = [("armv7", "iPhoneOS"),
-               ("armv7s", "iPhoneOS"),
-               ("arm64", "iPhoneOS"),
-               ("i386", "iPhoneSimulator"),
-               ("x86_64", "iPhoneSimulator")]
-    for t in targets:
-        build_opencv(srcroot, os.path.join(dstroot, "build"), t[1], t[0])
+    extra_cmake_flags = list(map((lambda e: "-DBUILD_opencv_"+e+"=OFF"), excluded_modules)) if excluded_modules is not None else []
+    for t in supportedarchs:
+        build_opencv(srcroot, os.path.join(dstroot, "build"), t[1], t[0], extra_cmake_flags)
 
     put_framework_together(srcroot, dstroot)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print "Usage:\n\t./build_framework.py <outputdir>\n\n"
-        sys.exit(0)
+    allarchs = [
+        ("armv7", "iPhoneOS"),
+        ("armv7s", "iPhoneOS"),
+        ("arm64", "iPhoneOS"),
+        ("i386", "iPhoneSimulator"),
+        ("x86_64", "iPhoneSimulator"),
+    ]
+    archs = list(map((lambda e: e[0]), allarchs))
+    archs = reduce((lambda a, b: a + "," + b), archs)
+    folder = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "../.."))
+    parser = argparse.ArgumentParser(description='The script builds OpenCV.framework for iOS.')
+    parser.add_argument('out', metavar='OUTDIR', help='folder to put built framework')
+    parser.add_argument('--archs', metavar='ARCHS', default=archs, help='the supported architectures (default is all "armv7,armv7s,arm64,i386,x86_64")')
+    parser.add_argument('--excluded_modules', default=None, help='the excluded modules (default is "None")')
+    args = parser.parse_args()
+    inputarchs = None if args.archs is None else [item for item in args.archs.split(',')]
+    supportedarchs = [e for e in allarchs if e[0] in inputarchs]
+    excluded_modules = None if args.excluded_modules is None else [item for item in args.excluded_modules.split(',')]
+    print("Building only for " + str(inputarchs) + "...")
+    if excluded_modules is not None:
+        print("Excluding the modules " + str(excluded_modules))
 
     try:
-        build_framework(os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "../..")), os.path.abspath(sys.argv[1]))
+        build_framework(os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "../..")), os.path.abspath(args.out), supportedarchs, excluded_modules)
     except Exception as e:
         print >>sys.stderr, e
         sys.exit(1)
