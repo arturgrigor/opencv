@@ -266,6 +266,11 @@ ocv_get_lintian_version(LINTIAN_VERSION)
 set(LIBS_LINTIAN_OVERRIDES "binary-or-shlib-defines-rpath" # usr/lib/libopencv_core.so.2.4.12
                            "package-name-doesnt-match-sonames") # libopencv-calib3d2.4 libopencv-contrib2.4
 
+if(AARCH64 AND CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
+   # GCC 4.8 has a bug which sometimes causes it to produce non-PIC aarch64 code.
+   list(APPEND LIBS_LINTIAN_OVERRIDES "shlib-with-non-pic-code")
+endif()
+
 if(HAVE_opencv_python)
     set(PYTHON_LINTIAN_OVERRIDES "binary-or-shlib-defines-rpath" # usr/lib/python2.7/dist-packages/cv2.so
                                  "missing-dependency-on-numpy-abi")
@@ -335,7 +340,7 @@ if(CPACK_GENERATOR STREQUAL "DEB")
 
     set(CHANGELOG_OUT_FILE "${CMAKE_BINARY_DIR}/deb-packages-gen/${comp}/changelog")
     set(CHANGELOG_OUT_FILE_GZ "${CMAKE_BINARY_DIR}/deb-packages-gen/${comp}/changelog.gz")
-    file(WRITE ${CHANGELOG_OUT_FILE} "Upstream changelog stub. See https://github.com/Itseez/opencv/wiki/ChangeLog")
+    file(WRITE ${CHANGELOG_OUT_FILE} "Upstream changelog stub. See https://github.com/opencv/opencv/wiki/ChangeLog")
 
     execute_process(COMMAND "${GZIP_TOOL}" "-ncf9" "${CHANGELOG_OUT_FILE}"
                     OUTPUT_FILE "${CHANGELOG_OUT_FILE_GZ}"
