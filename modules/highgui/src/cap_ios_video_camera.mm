@@ -108,9 +108,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
         if ([[NSFileManager defaultManager] fileExistsAtPath:[self videoFileString]]) {
             [[NSFileManager defaultManager] removeItemAtPath:[self videoFileString] error:&error];
         }
-        if (error == nil) {
-            NSLog(@"[Camera] Delete file %@", [self videoFileString]);
-        }
     }
 }
 
@@ -129,9 +126,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
 
         if (self.recordAssetWriter.status == AVAssetWriterStatusWriting) {
             [self.recordAssetWriter finishWriting];
-            NSLog(@"[Camera] recording stopped");
-        } else {
-            NSLog(@"[Camera] Recording Error: asset writer status is not writing");
         }
 
         self.recordAssetWriter = nil;
@@ -146,8 +140,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
 // TODO fix
 - (void)adjustLayoutToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation;
 {
-
-    NSLog(@"layout preview layer");
     if (self.parentView != nil) {
 
         CALayer* layer = self.customPreviewLayer;
@@ -157,20 +149,16 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
 
         switch (interfaceOrientation) {
             case UIInterfaceOrientationPortrait:
-                NSLog(@"to Portrait");
                 rotation_angle = 270;
                 break;
             case UIInterfaceOrientationPortraitUpsideDown:
                 rotation_angle = 90;
-                NSLog(@"to UpsideDown");
                 break;
             case UIInterfaceOrientationLandscapeLeft:
                 rotation_angle = 0;
-                NSLog(@"to LandscapeLeft");
                 break;
             case UIInterfaceOrientationLandscapeRight:
                 rotation_angle = 180;
-                NSLog(@"to LandscapeRight");
                 break;
             default:
                 break; // leave the layer in its last known orientation
@@ -197,7 +185,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
         }
 
         if (flip_bounds) {
-            NSLog(@"flip bounds");
             bounds = CGRectMake(0, 0, bounds.size.height, bounds.size.width);
         }
 
@@ -213,7 +200,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
 // TODO fix
 - (void)layoutPreviewLayer;
 {
-    NSLog(@"layout preview layer");
     if (self.parentView != nil) {
 
         CALayer* layer = self.customPreviewLayer;
@@ -229,11 +215,9 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
                 rotation_angle = 90;
                 break;
             case UIDeviceOrientationLandscapeLeft:
-                NSLog(@"left");
                 rotation_angle = 180;
                 break;
             case UIDeviceOrientationLandscapeRight:
-                NSLog(@"right");
                 rotation_angle = 0;
                 break;
             case UIDeviceOrientationFaceUp:
@@ -263,7 +247,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
         }
 
         if (flip_bounds) {
-            NSLog(@"flip bounds");
             bounds = CGRectMake(0, 0, bounds.size.height, bounds.size.width);
         }
 
@@ -330,18 +313,12 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
     // see the header doc for setSampleBufferDelegate:queue: for more information
     videoDataOutputQueue = dispatch_queue_create("VideoDataOutputQueue", DISPATCH_QUEUE_SERIAL);
     [self.videoDataOutput setSampleBufferDelegate:self queue:videoDataOutputQueue];
-
-
-    NSLog(@"[Camera] created AVCaptureVideoDataOutput at %d FPS", self.defaultFPS);
 }
 
 
 
 - (void)createVideoFileOutput;
 {
-    /* Video File Output in H.264, via AVAsserWriter */
-    NSLog(@"Create Video with dimensions %dx%d", self.imageWidth, self.imageHeight);
-
     NSDictionary *outputSettings
      = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithInt:self.imageWidth], AVVideoWidthKey,
                                                   [NSNumber numberWithInt:self.imageHeight], AVVideoHeightKey,
@@ -361,7 +338,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
                     sourcePixelBufferAttributes:[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithInt:pixelBufferFormat], kCVPixelBufferPixelFormatTypeKey, nil]];
 
     NSError* error = nil;
-    NSLog(@"Create AVAssetWriter with url: %@", [self videoFileURL]);
     self.recordAssetWriter = [AVAssetWriter assetWriterWithURL:[self videoFileURL]
                                                       fileType:AVFileTypeMPEG4
                                                          error:&error];
@@ -371,8 +347,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
 
     [self.recordAssetWriter addInput:self.recordAssetWriterInput];
     self.recordAssetWriterInput.expectsMediaDataInRealTime = YES;
-
-    NSLog(@"[Camera] created AVAssetWriter");
 }
 
 
@@ -550,8 +524,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
                 if (self.recordAssetWriter.status != AVAssetWriterStatusWriting) {
                     NSLog(@"[Camera] Recording Error: asset writer status is not writing: %@", self.recordAssetWriter.error);
                     return;
-                } else {
-                    NSLog(@"[Camera] Video recording started");
                 }
             }
 
@@ -559,7 +531,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
                 CVImageBufferRef pixelBuffer = [self pixelBufferFromCGImage:dstImage];
                 if (! [self.recordPixelBufferAdaptor appendPixelBuffer:pixelBuffer
                                                   withPresentationTime:lastSampleTime] ) {
-                    NSLog(@"Video Writing Error");
                 }
                 if (pixelBuffer != nullptr)
                     CVPixelBufferRelease(pixelBuffer);
@@ -582,7 +553,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
 {
     if (self.rotateVideo == YES)
     {
-        NSLog(@"rotate..");
         self.customPreviewLayer.bounds = CGRectMake(0, 0, self.parentView.frame.size.width, self.parentView.frame.size.height);
         [self layoutPreviewLayer];
     }
@@ -608,9 +578,6 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
     NSString *outputPath = [[NSString alloc] initWithFormat:@"%@%@", NSTemporaryDirectory(), @"output.mov"];
     NSURL *outputURL = [NSURL fileURLWithPath:outputPath];
     NSFileManager *fileManager = [NSFileManager defaultManager];
-    if ([fileManager fileExistsAtPath:outputPath]) {
-        NSLog(@"file exists");
-    }
     return outputURL;
 }
 

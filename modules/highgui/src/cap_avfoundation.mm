@@ -401,7 +401,6 @@ int CvCaptureCAM::startCaptureDevice(int cameraNum) {
         // I'm now using cvtranspose and cvflip instead, which takes cpu cycles.
         AVCaptureConnection *connection = [[mCaptureDecompressedVideoOutput connections] objectAtIndex:0];
         if([connection isVideoOrientationSupported]) {
-            //NSLog(@"Setting pixel buffer orientation");
             connection.videoOrientation = AVCaptureVideoOrientationPortrait;
         }
         */
@@ -550,7 +549,6 @@ bool CvCaptureCAM::setProperty(int property_id, double value) {
                 if (error) return false;
                 [mCaptureDevice setFocusMode:(int)value];
                 [mCaptureDevice unlockForConfiguration];
-                //NSLog(@"Focus set");
                 return true;
             }else {
                 return false;
@@ -563,7 +561,6 @@ bool CvCaptureCAM::setProperty(int property_id, double value) {
                 if (error) return false;
                 [mCaptureDevice setExposureMode:(int)value];
                 [mCaptureDevice unlockForConfiguration];
-                //NSLog(@"Exposure set");
                 return true;
             }else {
                 return false;
@@ -576,7 +573,6 @@ bool CvCaptureCAM::setProperty(int property_id, double value) {
                 if (error) return false;
                 [mCaptureDevice setFlashMode:(int)value];
                 [mCaptureDevice unlockForConfiguration];
-                //NSLog(@"Flash mode set");
                 return true;
             }else {
                 return false;
@@ -589,7 +585,6 @@ bool CvCaptureCAM::setProperty(int property_id, double value) {
                 if (error) return false;
                 [mCaptureDevice setWhiteBalanceMode:(int)value];
                 [mCaptureDevice unlockForConfiguration];
-                //NSLog(@"White balance set");
                 return true;
             }else {
                 return false;
@@ -602,7 +597,6 @@ bool CvCaptureCAM::setProperty(int property_id, double value) {
                 if (error) return false;
                 [mCaptureDevice setTorchMode:(int)value];
                 [mCaptureDevice unlockForConfiguration];
-                //NSLog(@"Torch mode set");
                 return true;
             }else {
                 return false;
@@ -1188,8 +1182,6 @@ CvVideoWriter_AVFoundation::CvVideoWriter_AVFoundation(const char* filename, int
 
     }
 
-    //NSLog(@"Path: %@", path);
-
     NSError *error = nil;
 
 
@@ -1265,7 +1257,6 @@ bool CvVideoWriter_AVFoundation::writeFrame(const IplImage* iplimage) {
 
     // writer status check
     if (![mMovieWriterInput isReadyForMoreMediaData] || mMovieWriter.status !=  AVAssetWriterStatusWriting ) {
-        NSLog(@"[mMovieWriterInput isReadyForMoreMediaData] Not ready for media data or ...");
         NSLog(@"mMovieWriter.status: %d. Error: %@", (int)mMovieWriter.status, [mMovieWriter.error localizedDescription]);
         [localpool drain];
         return false;
@@ -1324,10 +1315,8 @@ bool CvVideoWriter_AVFoundation::writeFrame(const IplImage* iplimage) {
 
     if (success) {
         frameCount ++;
-        //NSLog(@"Frame #%d", frameCount);
         return true;
     }else{
-        NSLog(@"Frame appendPixelBuffer failed.");
         return false;
     }
 

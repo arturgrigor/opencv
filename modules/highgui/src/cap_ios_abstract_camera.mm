@@ -95,7 +95,6 @@
 
         // check if camera available
         cameraAvailable = [UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera];
-        NSLog(@"camera available: %@", (cameraAvailable == YES ? @"YES" : @"NO") );
 
         running = NO;
 
@@ -128,7 +127,6 @@
 
         // check if camera available
         cameraAvailable = [UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera];
-        NSLog(@"camera available: %@", (cameraAvailable == YES ? @"YES" : @"NO") );
 
         running = NO;
 
@@ -160,7 +158,6 @@
 - (void)start;
 {
     if (![NSThread isMainThread]) {
-        NSLog(@"[Camera] Warning: Call start only from main thread");
         [self performSelectorOnMainThread:@selector(start) withObject:nil waitUntilDone:NO];
         return;
     }
@@ -252,7 +249,6 @@
         default:
             break;
     }
-    NSLog(@"deviceOrientationDidChange: %d", (int)orientation);
 
     [self updateOrientation];
 }
@@ -269,8 +265,6 @@
         [self.captureSession setSessionPreset:self.defaultAVCaptureSessionPreset];
     } else if ([self.captureSession canSetSessionPreset:AVCaptureSessionPresetLow]) {
         [self.captureSession setSessionPreset:AVCaptureSessionPresetLow];
-    } else {
-        NSLog(@"[Camera] Error: could not set session preset");
     }
 }
 
@@ -279,8 +273,6 @@
     // setup the device
     AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
     [self setDesiredCameraPosition:self.defaultAVCaptureDevicePosition];
-    NSLog(@"[Camera] device connected? %@", device.connected ? @"YES" : @"NO");
-    NSLog(@"[Camera] device position %@", (device.position == AVCaptureDevicePositionBack) ? @"back" : @"front");
 }
 
 
@@ -309,7 +301,6 @@
         self.captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
         [self.parentView.layer addSublayer:self.captureVideoPreviewLayer];
     }
-    NSLog(@"[Camera] created AVCaptureVideoPreviewLayer");
 }
 
 - (void)setDesiredCameraPosition:(AVCaptureDevicePosition)desiredPosition;

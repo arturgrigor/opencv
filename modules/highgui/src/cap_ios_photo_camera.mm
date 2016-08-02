@@ -105,7 +105,6 @@
                  // We have captured the image, we can allow the user to take another picture
                  cameraAvailable = YES;
 
-                 NSLog(@"CvPhotoCamera captured image");
                  if (self.delegate) {
                      [self.delegate photoCamera:self capturedImage:newImage];
                  }
@@ -147,7 +146,6 @@
             break;
         }
     }
-    NSLog(@"[Camera] still image output created");
 }
 
 
