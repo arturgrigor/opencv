@@ -279,13 +279,27 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
     }
     [[self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo] setEnabled:YES];
 
+    AVCaptureConnection *captureConnection = [self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo];
+    AVCaptureDevice *videoDevice = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
 
     // set default FPS
-    if ([self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo].supportsVideoMinFrameDuration) {
-        [self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo].videoMinFrameDuration = CMTimeMake(1, self.defaultFPS);
+    AVCaptureDeviceFormat *bestFormat = nil;
+    AVFrameRateRange *bestFrameRateRange = nil;
+    for (AVCaptureDeviceFormat *format in [videoDevice formats]) {
+        for (AVFrameRateRange *range in format.videoSupportedFrameRateRanges) {
+            if (range.maxFrameRate > bestFrameRateRange.maxFrameRate) {
+                bestFormat = format;
+                bestFrameRateRange = range;
+            }
+        }
     }
-    if ([self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo].supportsVideoMaxFrameDuration) {
-        [self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo].videoMaxFrameDuration = CMTimeMake(1, self.defaultFPS);
+    if (bestFormat) {
+        if ([videoDevice lockForConfiguration:nil] == YES) {
+            videoDevice.activeFormat = bestFormat;
+            videoDevice.activeVideoMinFrameDuration = bestFrameRateRange.minFrameDuration;
+            videoDevice.activeVideoMaxFrameDuration = bestFrameRateRange.maxFrameDuration;
+            [videoDevice unlockForConfiguration];
+        }
     }
 
     // set video mirroring for front camera (more intuitive)
