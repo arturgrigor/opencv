@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name = 'OpenCV-Lite'
-  s.version = '2.4.12.103'
+  s.version = '2.4.13.101'
   s.summary = 'OpenCV (Computer Vision) for iOS.'
   s.homepage = 'http://opencv.org'
   s.description = 'OpenCV: open source computer vision library\n\n    Homepage: http://opencv.org\n    Online docs: http://docs.opencv.org\n    Q&A forum: http://answers.opencv.org\n    Dev zone: http://code.opencv.org'
@@ -33,5 +33,5 @@ Pod::Spec.new do |s|
     'UIKit'
   ]
   s.requires_arc = false
-  s.prepare_command = '/usr/bin/python platforms/ios/build_framework.py ios --excluded_modules="flann,photo,video,shape,features2d,calib3d,stitching,videostab,world" && lipo -create `find ios/build -type f -name liblibjpeg.a` -o ios/liblibjpeg.a'
+  s.prepare_command = '/usr/bin/python platforms/ios/build_framework.py ios --excluded_modules="flann,photo,video,shape,features2d,calib3d,stitching,videostab,world" && lipo -create `find ios/build -type f -name liblibjpeg.a -not -path "*/Release/*"` -o ios/liblibjpeg.a'
 end
