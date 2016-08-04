@@ -283,13 +283,17 @@ static CGFloat DegreesToRadians(CGFloat degrees) {return degrees * M_PI / 180;};
     AVCaptureDevice *videoDevice = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
 
     // set default FPS
-    AVCaptureDeviceFormat *bestFormat = nil;
+    Float64 minimumFrameRateRequired = 15;
+    Float64 maximumFrameRateRequired = 60;
+
+    AVCaptureDeviceFormat *bestFormat = nil; // The best format will be the one with the smallest number of max frames
     AVFrameRateRange *bestFrameRateRange = nil;
     for (AVCaptureDeviceFormat *format in [videoDevice formats]) {
         for (AVFrameRateRange *range in format.videoSupportedFrameRateRanges) {
-            if (range.maxFrameRate > bestFrameRateRange.maxFrameRate) {
+            if (range.minFrameRate >= minimumFrameRateRequired && range.maxFrameRate <= maximumFrameRateRequired) {
                 bestFormat = format;
                 bestFrameRateRange = range;
+                break;
             }
         }
     }
